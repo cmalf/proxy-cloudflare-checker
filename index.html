@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Proxy Cloudflare Checker</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" 
+        crossorigin="anonymous">
+  <!-- Font Awesome for dark/light mode icon -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" 
+        integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg==" 
+        crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <div class="container-fluid mt-3">
+    <div class="row">
+      <!-- Dark mode toggle button placed at top left using an icon -->
+      <div class="col-12">
+        <button id="toggle-darkmode" class="btn btn-secondary">
+          <i id="darkmode-icon" class="fas fa-moon"></i>
+        </button>
+      </div>
+    </div>
+    <form id="proxy-form">
+      <br>
+      <h1>Proxy Cloudflare Checker</h1>
+      <h5>By. cmalf</h5>
+      <br>
+      <h6>
+        ]> Telegram:
+        <a href="https://t.me/furqonflynn" target="_blank">https://t.me/furqonflynn</a>
+      </h6>
+      <h6>
+        ]> Github:
+        <a href="https://github.com/cmalf" target="_blank">https://github.com/cmalf</a>
+      </h6>
+      <br>
+      <br>
+      <div class="row mt-3">
+        <!-- Proxy list input -->
+        <div class="col-md-4 mb-3">
+          <div class="form-group">
+            <label for="list">Proxy List</label>
+            <textarea id="list" class="form-control" placeholder="Protocol://username:password@ip:port" rows="10"></textarea>
+          </div>
+        </div>
+        <!-- Active proxies output -->
+        <div class="col-md-4 mb-3">
+          <div class="form-group">
+            <label for="work">Active Proxies</label>
+            <textarea id="work" class="form-control" placeholder="..." rows="10" readonly></textarea>
+          </div>
+        </div>
+        <!-- Failed proxies output -->
+        <div class="col-md-4 mb-3">
+          <div class="form-group">
+            <label for="failed">Failed Proxies</label>
+            <textarea id="failed" class="form-control" placeholder="..." rows="10" readonly></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="row mb-3">
+        <!-- Timeout input -->
+        <div class="col-md-6">
+          <div class="form-group">
+            <label for="timeout">Timeout (in seconds)</label>
+            <input id="timeout" class="form-control" type="number" value="10" min="1" max="60">
+          </div>
+        </div>
+        <!-- Start button -->
+        <div class="col-md-6 d-flex align-items-end">
+          <br>
+          <button type="submit" id="start-button" class="btn btn-info w-100">Start</button>
+        </div>
+      </div>
+        <br>
+        <div class="mt-3 note">
+        <strong>NOTE:</strong>
+        <p>- INFO : ]> If you want to test Local Network, leave the form for Proxy list blank and click start!</p>
+        <p>- INFO : ]> Click the top left gray capsule icon, for dark or light mode!</p>
+        <p>- ERROR CODE : 403 ]> Your proxy cannot penetrate cloudflare protection!</p>
+        <p>- ERROR CODE : 400 ]> Check your proxy configuration like credentials, bandwidth,etc!</p>
+        </div>
+        <br>
+    </form>
+  </div>
+
+  <!-- Socket.IO and jQuery Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.js"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.slim.min.js"
+          integrity="sha256-kmHvs0B+OpCW5GVHUNjv9rOmY0IvSIRcf7zGUDTDQM8="
+          crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js" 
+          integrity="sha512-TPh2Oxlg1zp+kz3nFA0C5vVC6leG/6mm1z9+mA81MI5eaUVqasPLO8Cuk4gMF4gUfP5etR73rgU/8PNMsSesoQ==" 
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" 
+          integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy" 
+          crossorigin="anonymous"></script>
+  <!-- Cloudflare Insights Beacon Script -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" 
+          integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" 
+          data-cf-beacon='{"rayId":"91969b6b4d023e59","serverTiming":{"name":{"cfExtPri":true,"cfL4":true,"cfSpeedBrain":true,"cfCacheStatus":true}},"version":"2025.1.0","token":"a50215028b8a42d4bb40350b3c3b404b"}' 
+          crossorigin="anonymous"></script>
+  <script>
+    $(function () {
+      var socket = io();
+
+      // Handle form submission for proxy checking
+      $("#proxy-form").on("submit", function (event) {
+        event.preventDefault();
+        // Clear previous results
+        $("#work").val('');
+        $("#failed").val('');
+        socket.emit('timeout', $('#timeout').val());
+        socket.emit('check', $('#list').val());
+      });
+
+      // Append valid proxies or local response to the Active Proxies textarea
+      socket.on('work', function (message) {
+        $("#work").val(function(i, text) {
+          return text + message + "\r\n";
+        });
+      });
+
+      // Append error messages to the Failed Proxies textarea
+      socket.on('error', function (message) {
+        $("#failed").val(function(i, text) {
+          return text + message + "\r\n";
+        });
+      });
+
+      // Toggle dark mode with icon update
+      $("#toggle-darkmode").on("click", function () {
+        $("body").toggleClass("dark-mode");
+        if ($("body").hasClass("dark-mode")) {
+          $("#darkmode-icon").removeClass("fa-moon").addClass("fa-sun");
+        } else {
+          $("#darkmode-icon").removeClass("fa-sun").addClass("fa-moon");
+        }
+      });
+    });
+  </script>
+</body>
+</html>
